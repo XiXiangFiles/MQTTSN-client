@@ -9,7 +9,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 
-class mqttsn implements mqttsnMethod{
+class mqttsn implements mqttsnMethod, mqttsnPacket {
 	String Host,Clientid;
 	int Port;
 
@@ -27,19 +27,32 @@ class mqttsn implements mqttsnMethod{
 	public void connect()   {
 		// TODO Auto-generated method stub
 		
-		byte [] sendpacket=createData(CONNECT);
+		byte [] sendpacket=createData(CONNECT,null);
 //		for(int i=0 ; i<sendpacket.length;i++) {
 //			System.out.printf("%x ", sendpacket[i]);
 //		}
+		
+		Thread t=new Thread(()->{
+			try {
+				sendto(sendpacket);
+			} catch (SocketException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		});
+		t.start();
 		try {
-			sendto(sendpacket);
-		} catch (SocketException e1) {
+			t.sleep(20);
+			t.join();
+			
+		} catch (InterruptedException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
-		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		}	
+	
 		
 		
 		Thread t1=new Thread(()->{
@@ -65,14 +78,51 @@ class mqttsn implements mqttsnMethod{
 				e.printStackTrace();
 			}
 		}) ;
-		t1.start();
+//		t1.start();
 		
 	}
 	
 	@Override
 	public void publish(String topic, String meg, int qos) {
 		// TODO Auto-generated method stub
-	
+		connect();
+		byte [] sendpacket=createData(REGISTER,topic);
+		byte [] sendpacket2=createData(PUBLISH,meg);
+		Thread t1=new Thread(()->{	
+			try {
+				
+				sendto(sendpacket);
+				sendto(sendpacket2);
+			}catch(Exception e) {}
+		});
+		
+		try {
+			t1.sleep(2000);
+			t1.start();
+			t1.join();
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		Thread t2=new Thread(()->{	
+			try {
+				sendto(sendpacket2);
+			}catch(Exception e) {}
+		});
+		try {
+			t2.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		t2.start();
+		try {
+			t2.join();
+			
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 	}
 
 	
@@ -88,7 +138,7 @@ class mqttsn implements mqttsnMethod{
 		
 		return null;
 	}
-	private byte[] createData(byte type) {
+	private byte[] createData(byte type , String ...args) {
 		int packetlen=0;
 		byte []mqttsnpackage=null;
 		switch(type) {
@@ -110,21 +160,59 @@ class mqttsn implements mqttsnMethod{
 					mqttsnpackage[i++]= (byte)x;
 				}
 				break;
+				case 0x0a: // REGISTER
+					packetlen=6;
+					packetlen+=args[0].length();
+					mqttsnpackage=new byte[packetlen];
+					mqttsnpackage[0]=(byte)packetlen;
+					mqttsnpackage[1]=type;
+//					----------------------------- topic id
+					mqttsnpackage[2]=0x00;
+					mqttsnpackage[3]=0x00;
+//					-----------------------------msgid
+					mqttsnpackage[4]=0x00;
+					mqttsnpackage[5]=0x01;
+//					----------------------------topic name
+					i=6;
+					for(char x :args[0].toCharArray() ) {
+						mqttsnpackage[i++]= (byte)x;
+					}
+				break;
+				case 0x0c: //PUBLISH
+					packetlen=7;
+					packetlen+=args[0].length();
+					mqttsnpackage=new byte[packetlen];
+					mqttsnpackage[0]=(byte)packetlen;
+					mqttsnpackage[1]=type;
+//					-------------------------flags
+					mqttsnpackage[2]=0x00;
+//					-------------------------TopicId
+					mqttsnpackage[3]=0x00;
+					mqttsnpackage[4]=0x01;
+//					-----------------------------msgid
+					mqttsnpackage[5]=0x00;
+					mqttsnpackage[6]=0x02;
+					i=7;
+					for(char x :args[0].toCharArray() ) {
+						mqttsnpackage[i++]= (byte)x;
+					}
+					break;
 		}
 		return mqttsnpackage;
 	}
 	private void sendto(byte [] data) throws SocketException, UnknownHostException {
-		DatagramSocket s =new DatagramSocket();
+		DatagramSocket s =new DatagramSocket(this.Port);
 		DatagramPacket output=new DatagramPacket(data,data.length,InetAddress.getByName(this.Host),this.Port);
-		Thread t1=new Thread(()-> {
+//		Thread t1=new Thread(()-> {
 			try {
 				s.send(output);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		});
-		t1.start();
+			s.close();
+//		});
+//		t1.start();
 	}
 	
 }
@@ -133,8 +221,10 @@ public class mqtttest {
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
+//		mqttsn n = new mqttsn("140.119.143.79:10000","mqtt-sn-tools-31231");
 		mqttsn n = new mqttsn("140.119.143.79:10000","mqtt-sn-tools-31231");
-		n.connect();
+		n.publish("testTpoic", "Testmqttsn", 0);
+//		n.connect();
 		
 	}
 
