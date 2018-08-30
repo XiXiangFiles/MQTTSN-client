@@ -35,10 +35,7 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 		Thread t=new Thread(()->{
 			try {
 				sendto(sendpacket);
-			} catch (SocketException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (UnknownHostException e) {
+			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -57,7 +54,7 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 // ------------------------------------------------------------------------------------------ listen 10000 port 
 		Thread t1=new Thread(()->{
 			try {
-				DatagramSocket s =new DatagramSocket(this.Port);
+				DatagramSocket s =new DatagramSocket();
 				while(true) {
 					DatagramPacket packet=listenPacket(s);
 					String msg=new String(packet.getData(),0,packet.getLength(),"ascii");
@@ -68,17 +65,12 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 					}
 					System.out.println("");
 				}
-				
-				
-			} catch (SocketException e) {
+			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			} catch (UnsupportedEncodingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			} 
 		}) ;
-//		t1.start();
+		t1.start();
 		
 	}
 	
