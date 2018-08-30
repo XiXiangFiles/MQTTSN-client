@@ -54,7 +54,7 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 		}	
 	
 		
-		
+// ------------------------------------------------------------------------------------------ listen 10000 port 
 		Thread t1=new Thread(()->{
 			try {
 				DatagramSocket s =new DatagramSocket(this.Port);
@@ -97,28 +97,9 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 		});
 		
 		try {
-			t1.sleep(2000);
+			t1.sleep(200);
 			t1.start();
 			t1.join();
-		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		Thread t2=new Thread(()->{	
-			try {
-				sendto(sendpacket2);
-			}catch(Exception e) {}
-		});
-		try {
-			t2.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		t2.start();
-		try {
-			t2.join();
-			
 		} catch (InterruptedException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -203,16 +184,13 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 	private void sendto(byte [] data) throws SocketException, UnknownHostException {
 		DatagramSocket s =new DatagramSocket(this.Port);
 		DatagramPacket output=new DatagramPacket(data,data.length,InetAddress.getByName(this.Host),this.Port);
-//		Thread t1=new Thread(()-> {
-			try {
-				s.send(output);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			s.close();
-//		});
-//		t1.start();
+		try {
+			s.send(output);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		s.close();
 	}
 	
 }
@@ -221,10 +199,8 @@ public class mqtttest {
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-//		mqttsn n = new mqttsn("140.119.143.79:10000","mqtt-sn-tools-31231");
 		mqttsn n = new mqttsn("140.119.143.79:10000","mqtt-sn-tools-31231");
 		n.publish("testTpoic", "Testmqttsn", 0);
-//		n.connect();
 		
 	}
 
