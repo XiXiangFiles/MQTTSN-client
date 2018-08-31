@@ -12,6 +12,7 @@ import java.net.UnknownHostException;
 class mqttsn implements mqttsnMethod, mqttsnPacket {
 	String Host,Clientid;
 	int Port;
+	int SocketPort;
 
 	
 	public mqttsn(String host,String clientid) {
@@ -20,18 +21,14 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 		this.Host=str[0];
 		this.Port=Integer.parseInt(str[1]);
 		this.Clientid=clientid;
-		
+		this.SocketPort=(int)(Math.random()*1000)+10000;
 	}
 	
 	@Override
 	public void connect()   {
 		// TODO Auto-generated method stub
 		
-		byte [] sendpacket=createData(CONNECT,null);
-//		for(int i=0 ; i<sendpacket.length;i++) {
-//			System.out.printf("%x ", sendpacket[i]);
-//		}
-		
+		byte [] sendpacket=createData(CONNECT,null);		
 		Thread t=new Thread(()->{
 			try {
 				sendto(sendpacket);
@@ -42,9 +39,7 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 		});
 		t.start();
 		try {
-			t.sleep(20);
 			t.join();
-			
 		} catch (InterruptedException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -54,16 +49,22 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 // ------------------------------------------------------------------------------------------ listen 10000 port 
 		Thread t1=new Thread(()->{
 			try {
-				DatagramSocket s =new DatagramSocket();
-				while(true) {
+				boolean flag=true;
+				DatagramSocket s =new DatagramSocket(this.SocketPort);
+				while(flag) {
 					DatagramPacket packet=listenPacket(s);
 					String msg=new String(packet.getData(),0,packet.getLength(),"ascii");
 					byte [] hexmsg=packet.getData();
 					System.out.println("msg=\t"+msg);
 					for(int i=0 ; i<packet.getLength();i++) {
-						System.out.printf("%x ", hexmsg[i]);
+						if(hexmsg[0]==0x03) {
+							flag=false;
+						}
+//						System.out.printf("%x ", hexmsg[i]);
 					}
 					System.out.println("");
+					
+					s.close();
 				}
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -71,6 +72,12 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 			} 
 		}) ;
 		t1.start();
+		try {
+			t1.join();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 	}
 	
@@ -85,11 +92,12 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 				
 				sendto(sendpacket);
 				sendto(sendpacket2);
-			}catch(Exception e) {}
+			}catch(Exception e) {
+				System.out.println(e.toString());
+			}
 		});
 		
 		try {
-			t1.sleep(200);
 			t1.start();
 			t1.join();
 		} catch (InterruptedException e1) {
@@ -174,7 +182,7 @@ class mqttsn implements mqttsnMethod, mqttsnPacket {
 		return mqttsnpackage;
 	}
 	private void sendto(byte [] data) throws SocketException, UnknownHostException {
-		DatagramSocket s =new DatagramSocket(this.Port);
+		DatagramSocket s =new DatagramSocket(this.SocketPort);
 		DatagramPacket output=new DatagramPacket(data,data.length,InetAddress.getByName(this.Host),this.Port);
 		try {
 			s.send(output);
